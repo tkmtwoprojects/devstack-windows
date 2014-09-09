@@ -1,0 +1,204 @@
+
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'de.undercouch:gradle-download-task:1.0'
+  }
+}
+
+import de.undercouch.gradle.tasks.download.Download
+import org.apache.tools.ant.filters.ReplaceTokens
+
+def installHome = 'C:/aaadev'
+def serviceNameZk = 'AAAZookeeper'
+def serviceNameKafka = 'AAAKafka'
+
+def stageHome = "${buildDir}/stage"
+
+
+def linkKafka = 'http://apache.claz.org/kafka/0.8.1.1/kafka_2.10-0.8.1.1.tgz'
+def linkSlf4jLog4j = 'http://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-log4j12/1.7.2/slf4j-log4j12-1.7.2.jar'
+def linkKafkaWinBat = 'https://github.com/Anilot/kafka/releases/download/0.8.1.1-UpdWinFiles/Kafka081WinBatFiles.zip'
+def linkYajsw = 'http://sourceforge.net/projects/yajsw/files/yajsw/yajsw-stable-11.11/yajsw-stable-11.11.zip'
+def linkJdk = 'http://download.oracle.com/otn-pub/java/jdk/7u67-b01/server-jre-7u67-windows-x64.tar.gz'
+
+
+// This is really crummy, but I can't think of
+// another way to do this right now and I'm tired of trying.
+def dirKafka = 'kafka_2.10-0.8.1.1'
+def dirKafkaWinBat = 'windows'
+def dirYajsw = 'yajsw-stable-11.11'
+def dirJdk = 'jdk1.7.0_67'
+
+
+
+task wrapper(type: Wrapper)
+
+task clean(type:Delete) { 
+  delete "$buildDir"
+}
+
+task checkInstallHome << { 
+  File file = file(installHome);
+  if(file.exists()) { 
+    throw new GradleException("Install directory ${installHome} already exists.  Clean up your previous installation.")
+  }
+}
+
+task confess << { 
+  println "Hello World"
+  println "linkKafka is ${linkKafka}"
+  println "linkYajsw is ${linkYajsw}"
+  println "linkJdk   is ${linkJdk}"
+
+  println "dirKafka is ${dirKafka}"
+  println "dirYajsw is ${dirYajsw}"
+  println "dirJdk   is ${dirJdk}"
+  println "installHome   is ${installHome}"
+  
+}
+
+
+
+
+
+task downloadKafka(type: Download) { 
+  onlyIfNewer true
+  src linkKafka
+  dest new File(buildDir, 'kafka.tgz')
+}
+
+task downloadSlf4jLog4j(type: Download) { 
+  onlyIfNewer true
+  src linkSlf4jLog4j
+  dest new File(buildDir, 'slf4j-log4j12-1.7.2.jar')
+}
+
+task downloadKafkaWinBat(type: Download) { 
+  onlyIfNewer true
+  src linkKafkaWinBat
+  dest new File(buildDir, 'kafkawinbat.zip')
+}
+
+task downloadYajsw(type: Download) { 
+  onlyIfNewer true
+  src linkYajsw
+  dest new File(buildDir, 'yajsw.zip')
+}
+
+task downloadJdk(type: Download) { 
+  onlyIfNewer true
+  header 'Cookie', 'oraclelicense=accept-securebackup-cookie'
+  src linkJdk
+  dest new File(buildDir, 'server-jre.tgz')
+}
+
+task downloadAll(dependsOn: [downloadKafka,
+                             downloadSlf4jLog4j,
+                             downloadKafkaWinBat,
+                             downloadYajsw,
+                             downloadJdk]) { 
+  doLast {
+    println("Everything is downloaded.")
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+task unpackKafka(dependsOn: downloadKafka, type: Copy) { 
+  from tarTree(resources.gzip("$buildDir/kafka.tgz"))
+  into "$stageHome"
+}
+task unpackKafkaWinBat(dependsOn: downloadKafkaWinBat, type: Copy) { 
+  from zipTree("$buildDir/kafkawinbat.zip")
+  into "$stageHome"
+}
+task unpackYajsw(dependsOn: downloadYajsw, type: Copy) { 
+  from zipTree("$buildDir/yajsw.zip")
+  into "$stageHome"
+}
+task unpackJdk(dependsOn: downloadJdk, type: Copy) { 
+  from tarTree(resources.gzip("$buildDir/server-jre.tgz"))
+  into "$stageHome"
+}
+
+
+task unpackAll(dependsOn: [unpackKafka,
+                           unpackKafkaWinBat,
+                           unpackYajsw,
+                           unpackJdk]) { 
+  doLast {
+    println("Eveything is unpacked.");
+  }
+}
+
+
+
+
+task deployKafka(dependsOn: unpackKafka, type: Copy) {
+  from "${stageHome}/${dirKafka}"
+  into "${installHome}/kafka"
+  exclude '**/bin/windows/**'
+}
+task deploySlf4jLog4j(dependsOn: downloadSlf4jLog4j, type: Copy) {
+  from "${buildDir}/slf4j-log4j12-1.7.2.jar"
+  into "${installHome}/kafka/libs"
+}
+
+task deployKafkaWinBat(dependsOn: [unpackKafka, unpackKafkaWinBat], type: Copy) {
+  from "${stageHome}/${dirKafkaWinBat}"
+  into "${installHome}/kafka/bin/windows"
+}
+task deployJdk(dependsOn: unpackJdk, type: Copy) {
+  from "${stageHome}/${dirJdk}"
+  into "${installHome}/java"
+}
+task deployYajswZookeeper(dependsOn: [unpackKafka, unpackYajsw], type: Copy) {
+  from "${stageHome}/${dirYajsw}"
+  into "${installHome}/kafka/yajsw-zookeeper"
+}
+task deployYajswKafka(dependsOn: [unpackKafka, unpackYajsw], type: Copy) {
+  from "${stageHome}/${dirYajsw}"
+  into "${installHome}/kafka/yajsw-kafka"
+}
+task deployCustomizations(dependsOn: [unpackAll,
+                                      deployKafka,
+                                      deployKafkaWinBat,
+                                      deployJdk,
+                                      deployYajswZookeeper,
+                                      deployYajswKafka], type: Copy) {
+  from 'src'
+  into "${installHome}"
+  filter(ReplaceTokens,
+         tokens: [INSTALL_JAVA_HOME: "${installHome}/java".toString(),
+                  INSTALL_KAFKA_HOME: "${installHome}/kafka".toString(),
+                  SERVICE_NAME_KAFKA: "${serviceNameKafka}".toString(),
+                  SERVICE_NAME_ZK: "${serviceNameZk}".toString()])
+}
+
+
+task deployAll(dependsOn: [checkInstallHome,
+                           unpackAll,
+                           deployKafka,
+                           deploySlf4jLog4j,
+                           deployKafkaWinBat,
+                           deployYajswZookeeper,
+                           deployYajswKafka,
+                           deployJdk,
+                           deployCustomizations]) << { 
+  
+  println("Deployment complete to ${installHome}.  You may now install the services.")
+}
+
+
+
