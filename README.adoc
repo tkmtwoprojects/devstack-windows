@@ -1,0 +1,134 @@
+devstack-windows
+================
+
+Development stack for windows.
+
+== Motivation
+
+To quickly get a Windows (probably laptop) host up and running with
+some development versions of popular services.  At this point,
+this is only a Java JDK, and a Kafka with Zookeeper.
+
+This version includes:
+
+* JDK 1.7.67
+* Kafka/Zookeeper 0.8.1.1 on Scala 2.10
+* YAJSW 11.11
+
+== Deploying
+
+This is a gradle build which should work without too much trouble.
+By default, everything is deployed under +C:\aaadev+.
+The top-level directory can be changed, as well as the service names, but there is no requirement to do so.
+
+To deploy, simply clone this repository, change directory in to the directory, and run:
+
+[source,text]
+.Running the Deployment
+----
+gradlew deployAll
+----
+
+Which will download all components, unpack them, and deploy them into the target directory.
+
+
+== Installing Windows Services
+
+Once the bundle is deployed, Windows services should be installed with the YAJSW batch files.
+It is highly recommended that a Windows command shell be running as +Administrator+ during these installations.
+Instead of simply clicking on the "Command Prompt" icon, right-click it and choose "Run as administrator" if your OS has it.
+
+For Zookeeper, change into the wrapper batch directory and run +00-env.bat+ to source the environment.
+The Java version can be verified with +where+ and +java -version+.
+The +installService.bat+ file takes not arguments.
+Sample output below:
+
+[source,text]
+.Installing Zookeeper Service
+----
+C:\aaadev\kafka\yajsw-zookeeper\bat>00-env.bat
+C:\aaadev\kafka\yajsw-zookeeper\bat>where java
+C:\aaadev\java\bin\java.exe
+
+C:\aaadev\kafka\yajsw-zookeeper\bat>java -version
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.timezone=UTC
+java version "1.7.0_67"
+Java(TM) SE Runtime Environment (build 1.7.0_67-b01)
+Java HotSpot(TM) 64-Bit Server VM (build 24.65-b04, mixed mode)
+
+C:\aaadev\kafka\yajsw-zookeeper\bat>installService.bat
+
+C:\aaadev\kafka\yajsw-zookeeper\bat>cd C:\aaadev\kafka\yajsw-zookeeper\bat\
+
+C:\aaadev\kafka\yajsw-zookeeper\bat>call setenv.bat
+"java" -Xmx30m -Djna_tmpdir="C:\aaadev\kafka\yajsw-zookeeper\bat\/../tmp" -Djava
+.net.preferIPv4Stack=true -jar "C:\aaadev\kafka\yajsw-zookeeper\bat\/../wrapper.
+jar" -i "C:\aaadev\kafka\yajsw-zookeeper\bat\/../conf/wrapper.conf"
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.timezone=UTC
+YAJSW: yajsw-stable-11.11
+OS   : Windows 7/6.1/amd64
+JVM  : Oracle Corporation/1.7.0_67/C:\aaadev\java\jre/64
+Sep 09, 2014 1:02:55 PM org.apache.commons.vfs2.VfsLog info
+INFO: Using "C:\windows\TEMP\vfs_cache" as temporary files store.
+Sep 09, 2014 1:02:55 PM org.rzo.yajsw.wrapper.WrappedService jvmOptions
+INFO: Windows & JVM7: Setting -Djava.net.preferIPv4Stack=true (see java bug 7179
+799 )
+************* INSTALLING AAAZookeeper ***********************
+
+service cmd: C:\aaadev\java\bin\java.exe -classpath C:\aaadev\kafka\yajsw-zookee
+per\wrapper.jar -Xrs -Dwrapper.service=true -Dwrapper.working.dir=C:\aaadev\kafk
+a -Djava.net.preferIPv4Stack=true -Dwrapper_home=C:\aaadev\kafka\yajsw-zookeeper
+\bat\/.. -Djava_home=C:/aaadev/java -Dkafka_home=C:/aaadev/kafka -Djna_tmpdir=C:
+\aaadev\kafka\yajsw-zookeeper\bat\/../tmp -Dwrapper.java.command=C:/aaadev/java/
+bin/java -Dwrapper.config=C:\aaadev\kafka\yajsw-zookeeper\conf\wrapper.conf -Dwr
+apper.additional.1x=-Xrs -Djna_tmpdir=C:\aaadev\kafka\yajsw-zookeeper\bat\..\tmp
+ org.rzo.yajsw.boot.WrapperServiceBooter
+Service AAAZookeeper installed
+Press any key to continue . . .
+
+C:\aaadev\kafka\yajsw-zookeeper\bat>
+----
+
+Kafka has it's own service.
+In the same shell, switch to the +yajsw-kafka+ directory and run the same +installService.bat+ file:
+
+[source, text]
+.Installing Kafka Service
+----
+C:\aaadev\kafka\yajsw-zookeeper\bat>cd ..\..\yajsw-kafka\bat
+
+C:\aaadev\kafka\yajsw-kafka\bat>installService.bat
+
+C:\aaadev\kafka\yajsw-kafka\bat>cd C:\aaadev\kafka\yajsw-kafka\bat\
+
+C:\aaadev\kafka\yajsw-kafka\bat>call setenv.bat
+"java" -Xmx30m -Djna_tmpdir="C:\aaadev\kafka\yajsw-kafka\bat\/../tmp" -Djava.net
+.preferIPv4Stack=true -jar "C:\aaadev\kafka\yajsw-kafka\bat\/../wrapper.jar" -i
+"C:\aaadev\kafka\yajsw-kafka\bat\/../conf/wrapper.conf"
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8 -Duser.timezone=UTC
+YAJSW: yajsw-stable-11.11
+OS   : Windows 7/6.1/amd64
+JVM  : Oracle Corporation/1.7.0_67/C:\aaadev\java\jre/64
+Sep 09, 2014 1:03:10 PM org.apache.commons.vfs2.VfsLog info
+INFO: Using "C:\windows\TEMP\vfs_cache" as temporary files store.
+Sep 09, 2014 1:03:10 PM org.rzo.yajsw.wrapper.WrappedService jvmOptions
+INFO: Windows & JVM7: Setting -Djava.net.preferIPv4Stack=true (see java bug 7179
+799 )
+************* INSTALLING AAAKafka ***********************
+
+service cmd: C:\aaadev\java\bin\java.exe -classpath C:\aaadev\kafka\yajsw-kafka\
+wrapper.jar -Xrs -Dwrapper.service=true -Dwrapper.working.dir=C:\aaadev\kafka -D
+java.net.preferIPv4Stack=true -Dwrapper_home=C:\aaadev\kafka\yajsw-kafka\bat\/..
+ -Djava_home=C:/aaadev/java -Dkafka_home=C:/aaadev/kafka -Djna_tmpdir=C:\aaadev\
+kafka\yajsw-kafka\bat\/../tmp -Dwrapper.java.command=C:/aaadev/java/bin/java -Dw
+rapper.config=C:\aaadev\kafka\yajsw-kafka\conf\wrapper.conf -Dwrapper.additional
+.1x=-Xrs -Djna_tmpdir=C:\aaadev\kafka\yajsw-kafka\bat\..\tmp org.rzo.yajsw.boot.
+WrapperServiceBooter
+Service AAAKafka installed
+Press any key to continue . . .
+
+C:\aaadev\kafka\yajsw-kafka\bat>
+----
+
+
+The two services should now be installed with name prefixes of +AAA+ so that they are at the top.
