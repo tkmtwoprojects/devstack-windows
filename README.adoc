@@ -132,3 +132,26 @@ C:\aaadev\kafka\yajsw-kafka\bat>
 
 
 The two services should now be installed with name prefixes of +AAA+ so that they are at the top.
+
+
+
+
+
+
+== Running Kafka "Quick Start" Samples
+
+The Windows batch file support in Kafka is broken.  The batch files in this bundle have
+been replaces with those from https://github.com/Anilot/kafka/releases.
+
+To follow along the quick-start section from the Kafka documentation, keep in mind
+that the windows batch files are in bin/windows.  So the familiar getting started samples
+end up looking like those shown below when run from the top Kafka directory (default: +C:\aaadev\kafka+).
+
+These two create a topic and verify by listing the topics:
+bin\windows\kafka-topics.bat --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
+bin\windows\kafka-topics.bat --list --zookeeper localhost:2181
+
+These two you will want to run in seperate windows:
+bin\windows\kafka-console-producer.bat --broker-list localhost:9092 --topic test
+bin\windows\kafka-console-consumer.bat --zookeeper localhost:2181 --topic test --from-beginning
+
